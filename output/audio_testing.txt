@@ -1,0 +1,57 @@
+==================================================
+AUDIO PIPELINE TEST
+==================================================
+🔊 Testing audio loading...
+✅ Loaded: test_d_1.wav
+   Duration: 2.28 seconds
+   Sample rate: 16000 Hz
+   Audio shape: (36409,)
+
+📊 Testing feature extraction...
+🎵 Happy: Pitch=229.1Hz, Energy=0.0423
+🎵 Sad:   Pitch=177.0Hz, Energy=0.0125
+
+📈 Pitch difference: -22.7% (Expected: negative)
+📊 Average pitch by emotion:
+emotion
+sad        197.945626
+neutral    200.067324
+disgust    203.039342
+fear       218.181572
+happy      222.375727
+anger      233.278895
+Name: pitch_mean, dtype: float64
+
+📊 Average energy by emotion:
+emotion
+sad        0.011161
+neutral    0.015886
+disgust    0.018959
+fear       0.026855
+happy      0.031413
+anger      0.063157
+Name: energy_mean, dtype: float64
+
+📊 Average speech rate by emotion:
+emotion
+fear       5.872935
+anger      6.007010
+disgust    6.083111
+sad        6.146865
+happy      6.302789
+neutral    6.375378
+Name: speech_rate, dtype: float64
+
+
+
+Accuracy: 89.91%
+
+Classification Report:
+              precision    recall  f1-score   support
+
+    Low Risk       0.54      0.32      0.40       472
+   High Risk       0.74      0.87      0.80      1017
+
+    accuracy                           0.70      1489
+   macro avg       0.64      0.60      0.60      1489
+weighted avg       0.67      0.70      0.67      1489

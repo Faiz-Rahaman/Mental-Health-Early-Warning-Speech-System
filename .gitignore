@@ -1,0 +1,40 @@
+# Environment Variables (CRITICAL: Never commit API keys!)
+.env
+
+# Raw Audio Data (Too large for GitHub)
+300_P/
+301_P/
+302_P/
+303_P/
+304_P/
+305_P/
+306_P/
+307_P/
+308_P/
+309_P/
+310_P/
+311_P/
+312_P/
+313_P/
+314_P/
+315_P/
+dataset/
+baseline_audio/
+
+# Temporary and Cache Files
+output/temp/
+__pycache__/
+*.pyc
+
+# Local Databases and Unnecessary Output
+output/ewss_features.db
+output/all_features_crema.csv
+output/sample_language_features.csv
+output/daic_woz_features.csv
+
+# VS Code Settings (Optional)
+.vscode/
+
+# Other unneeded files
+testmcp.py
+parlant-data/

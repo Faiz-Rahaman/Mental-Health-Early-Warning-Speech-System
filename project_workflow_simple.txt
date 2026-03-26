@@ -1,0 +1,38 @@
+MH-EWSS WORKFLOW (Horizontal Flow)
+================================================================================
+[CREMA-D Dataset]  [User Audio]
+        |                |
+        └──────┬─────────┘
+               ↓
+    [AUDIO PROCESSING PIPELINE]
+    ├─1. Load & Normalize
+    ├─2. Noise Reduction
+    ├─3. Voice Detection
+    └─4. Silence Trimming
+               |
+               ↓
+        [FEATURE SPLIT]───┬───────────────────────┐
+               |           |                       |
+               ↓           ↓                       ↓
+        [PROSODY AGENT]  [LANGUAGE AGENT]  [TEMPORAL AGENT]
+        (How you speak)   (What you say)    (Changes over time)
+               |           |                       |
+               ↓           ↓                       ↓
+        [7 Features]   [5 Features]        [Trend Analysis]
+               |           |                       |
+               └─────┬─────┴──────────┬────────────┘
+                     ↓                ↓
+            [PERSONAL BASELINE]  [DATABASE]
+               (Your normal)     (SQLite/JSON)
+                     |                |
+                     └──────┬─────────┘
+                            ↓
+                    [LLM DECISION AGENT]
+                    (Safe, Non-Medical)
+                            |
+                            ↓
+                    [USER DASHBOARD]
+                    ├─ Risk Level
+                    ├─ Explanation
+                    └─ Recommendations
+==================================================================================

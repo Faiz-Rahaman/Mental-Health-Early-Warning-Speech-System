@@ -1,0 +1,364 @@
+================================================================================
+          MH-EWSS: MENTAL HEALTH EARLY WARNING SPEECH SYSTEM
+                    COMPLETE PROJECT EXPLANATION
+================================================================================
+
+
+1. WHAT IS THIS PROJECT?
+========================
+
+MH-EWSS (Mental Health Early Warning Speech System) is an AI-powered tool that
+listens to a person's voice and detects early signs of depression or mental
+fatigue—without asking any medical questions. It works purely by analyzing HOW
+someone speaks (their vocal physics) and WHAT they say (their word choices).
+
+Think of it like this: when someone is depressed, their voice naturally becomes
+flatter, slower, and more monotone. They pause more, use simpler words, and
+their vocal energy drops. These are involuntary physiological changes that
+happen even when the person is trying to sound "normal." Our system detects
+exactly those subtle changes using advanced signal processing and machine
+learning.
+
+The system is NOT a medical diagnostic tool. It is an early warning system
+that flags potential vocal biomarker deviations and suggests the user seek
+professional help if needed.
+
+
+2. WHY DID WE BUILD THIS?
+==========================
+
+Depression is one of the most underdiagnosed conditions globally. Most people
+suffering from it never seek help because:
+  - They don't realize they are depressed
+  - There is social stigma around mental health
+  - Access to psychiatrists is limited in many regions
+
+Voice is one of the most accessible biometric signals—everyone has a phone
+and can record a short clip of themselves speaking. Research from institutions
+like USC (University of Southern California) has shown that vocal biomarkers
+can reliably indicate depression severity. Our project takes that research
+and builds a practical, usable AI system around it.
+
+
+3. THE DATASET: DAIC-WOZ
+=========================
+
+We train our AI on the DAIC-WOZ (Distress Analysis Interview Corpus) dataset,
+developed by USC's Institute for Creative Technologies.
+
+What is it?
+  - Real psychiatric clinical interviews (not acted emotions)
+  - Each participant sits with a virtual interviewer (an AI avatar named Ellie)
+  - The interviews last 10-20 minutes each
+  - Participants include both healthy controls and clinically depressed individuals
+
+Why DAIC-WOZ instead of CREMA-D?
+  - CREMA-D is an actor-based emotional dataset (people pretending to be sad/angry)
+  - A person genuinely suffering from depression sounds completely different from
+    an actor faking sadness
+  - DAIC-WOZ captures real, involuntary physiological vocal changes
+  - This makes our model clinically relevant rather than just an emotion classifier
+
+We currently use 16 participants (300_P through 315_P), generating over 3,000
+training samples from their audio recordings.
+
+
+4. HOW DOES THE AUDIO PROCESSING WORK?
+=======================================
+
+Step 1: Audio Chunking
+  - Each 15-minute interview is too long to analyze as one piece
+  - We slice it into 5-second chunks (e.g., a 15-min file = 180 chunks)
+  - Each chunk becomes one independent training sample
+
+Step 2: Acoustic Feature Extraction (23 features per chunk)
+  Using the "librosa" Python library, we extract:
+
+  A) 10 Core Prosodic Features:
+     1.  Pitch Mean         - Average speaking frequency (Hz)
+     2.  Pitch Std          - How monotone vs. varied the voice is
+     3.  Energy Mean        - Average loudness/volume
+     4.  Energy Std         - Volume dynamics (flat vs. animated)
+     5.  Speech Rate        - How fast they speak (syllables/sec)
+     6.  Pause Ratio        - Proportion of silence in speech
+     7.  HNR                - Harmonics-to-Noise Ratio (voice clarity)
+     8.  ZCR Mean           - Zero Crossing Rate (harshness/breathiness)
+     9.  Spectral Centroid  - "Brightness" of the voice
+     10. Spectral Rolloff   - High-frequency energy distribution
+
+  B) 13 MFCCs (Mel-Frequency Cepstral Coefficients):
+     - These are the mathematical "fingerprints" of the vocal tract
+     - They represent the physical shape of your mouth, throat, tongue,
+       and nasal cavity
+     - When depressed, muscle tension drops, which changes these shapes
+     - MFCCs capture exactly that change at a sub-conscious level
+     - We extract coefficients 1 through 13 (the most informative range)
+
+Step 3: Linguistic Feature Extraction (6 features per chunk)
+  Using transcript alignment and TextBlob NLP:
+     1. Transcription       - What the person actually said
+     2. Word Count          - How many words per chunk
+     3. Sentiment Polarity  - Positive vs. negative tone (-1 to +1)
+     4. Sentiment Subjectivity - Objective vs. subjective language
+     5. Vocabulary Richness - Ratio of unique words to total words
+     6. Sentence Complexity - Average words per sentence
+
+Step 4: Clinical Risk Labeling
+  Each chunk is automatically labeled as:
+    - 0 (Low Risk)    - Normal vocal patterns
+    - 1 (Medium Risk) - Some deviation from healthy norms
+    - 2 (High Risk)   - Strong indicators of vocal distress
+
+  Labels are assigned based on research-backed thresholds:
+    - Very low pitch variability (monotone voice)
+    - Extremely high pause ratios (long silences)
+    - Very low energy (quiet, withdrawn speech)
+    - Negative sentiment in transcribed words
+
+Step 5: Multiprocessing Optimization
+  - Processing 16 audio files sequentially with librosa takes hours
+  - We use Python's "joblib" library to parallelize the work
+  - All CPU cores process different chunks simultaneously (n_jobs=-1)
+  - This drops extraction time from 2+ hours to just minutes
+
+
+5. HOW DOES THE MACHINE LEARNING MODEL WORK?
+=============================================
+
+Algorithm: Gradient Boosting Classifier (GBM)
+  - An ensemble method that builds hundreds of small decision trees
+  - Each new tree corrects the errors of the previous ones
+  - Much more accurate than a single Decision Tree or Random Forest
+  - Specifically tuned with:
+      * 200 estimators (decision trees)
+      * Max depth of 4 (prevents overfitting)
+      * Learning rate of 0.1 (slow, careful learning)
+      * Subsample of 0.8 (uses 80% of data per tree for robustness)
+
+Data Preprocessing: StandardScaler
+  - All 23 features have wildly different scales
+    (e.g., Pitch is ~200 Hz, but MFCC values are ~0.001)
+  - StandardScaler normalizes every feature to have mean=0 and std=1
+  - This prevents features with large numbers from dominating the model
+
+Class Balancing: SMOTE (Synthetic Minority Over-sampling Technique)
+  - Problem: In real clinical data, most people are NOT severely depressed
+    Our raw data: Low Risk = 4.3%, Medium Risk = 71.9%, High Risk = 23.8%
+  - If we train directly on this, the AI learns to always guess "Medium Risk"
+    and gets 72% accuracy by doing nothing useful
+  - SMOTE fixes this by mathematically generating synthetic minority samples
+  - How it works:
+      1. Pick a real High Risk sample
+      2. Find its 5 nearest neighbors (other High Risk samples)
+      3. Create a new synthetic sample along the line between them
+      4. Repeat until all classes have equal representation
+  - After SMOTE: Low = Medium = High = ~1,700 samples each
+  - The model now MUST learn the actual differences between classes
+
+Validation: 5-Fold Stratified Cross Validation
+  - The data is split into 5 equal parts
+  - The model trains on 4 parts and tests on 1 part
+  - This repeats 5 times (each part gets to be the test set once)
+  - Final accuracy = average of all 5 runs
+  - "Stratified" means each fold maintains the same class proportions
+  - This gives us a reliable, unbiased estimate of real-world performance
+
+Current Performance:
+  - Test Accuracy: ~87-88%
+  - 5-Fold CV Accuracy: ~88.56% (+/- 2.01%)
+  - The model correctly identifies High Risk cases with ~84% recall
+
+
+6. THE LANGGRAPH PIPELINE (HOW IT ALL CONNECTS)
+================================================
+
+LangGraph is a framework by LangChain that orchestrates AI agents as a
+directed graph. Each "node" in the graph is an independent agent that
+processes one aspect of the data, then passes its results to the next node.
+
+Our graph has 4 nodes:
+
+Node 1: PROSODY AGENT (extract_features.py)
+  Input:  Raw audio file (.wav)
+  Output: Dictionary of 23 acoustic features (10 prosodic + 13 MFCCs)
+  How:    Uses librosa to compute pitch, energy, speech rate, MFCCs, etc.
+
+Node 2: LANGUAGE AGENT (extract_language_features.py)
+  Input:  Raw audio file (.wav)
+  Output: Dictionary of 6 linguistic features
+  How:    Uses Google Web Speech API to transcribe audio to text,
+          then uses TextBlob for sentiment and vocabulary analysis
+
+Node 3: TEMPORAL AGENT (database_manager.py)
+  Input:  Features from Nodes 1 and 2
+  Output: Personal Baseline comparison data
+  How:    Stores all features in SQLite database (ewss_features.db)
+          Calculates user's "normal" baseline from historical recordings
+          Computes deviation scores (how different today is from your norm)
+
+Node 4: ML + LLM DECISION AGENT (langgraph_workflow.py)
+  Input:  All features + baseline + ML model prediction
+  Output: Final risk assessment JSON
+
+  This node does TWO things:
+
+  Step A - Local ML Model:
+    - Feeds the 23 acoustic features into our trained Gradient Boosting model
+    - Gets a precise mathematical probability
+      (e.g., "92.3% chance of High Risk")
+    - This is pure math, no hallucination possible
+
+  Step B - Gemini LLM Analysis:
+    - Takes the ML probability AND all the raw features
+    - Constructs a detailed prompt for the Gemini 1.5 Flash API
+    - The prompt includes: transcription, vocal physics, baseline deviation,
+      AND the ML model's exact probability
+    - Gemini returns a structured JSON containing:
+        * risk_level: "Low" / "Medium" / "High"
+        * explanation: Why this risk level was assigned
+        * recommendations: Specific actionable suggestions
+
+  Why use BOTH an ML model AND an LLM?
+    - The ML model is precise but can't explain itself in natural language
+    - The LLM can explain and recommend but shouldn't do raw math
+    - Together: ML provides the mathematical backbone, LLM provides the
+      human-readable interpretation and recommendations
+
+
+7. THE STREAMLIT DASHBOARD (FRONTEND UI)
+=========================================
+
+The user interface is built with Streamlit, a Python-based web framework.
+
+What the dashboard shows:
+  - Audio upload widget (drag-and-drop any .wav file)
+  - Voice Diagnostic Panel:
+      * Pitch analysis with historical comparison
+      * Energy/loudness analysis
+      * Speech rate and pause metrics
+  - ML Model Prediction Box:
+      * Shows exact probability breakdown (Low %, Medium %, High %)
+      * Confidence score
+      * Trained dataset indicator (DAIC-WOZ)
+  - Mental Health Status Badge:
+      * "Healthy" (green) for Low Risk
+      * "Needs Attention" (yellow) for Medium Risk
+      * "Unhealthy" (red) for High Risk
+  - LLM Analysis Section:
+      * Gemini's detailed explanation
+      * Numbered, actionable recommendations
+      * Emergency banner for High Risk cases
+  - Historical Trend Charts:
+      * Plotly interactive graphs showing feature changes over time
+      * Baseline comparison visualization
+
+
+8. FILE STRUCTURE
+=================
+
+MH-EWSS_Speech_Project/
+├── .env                              - API keys (GEMINI_API_KEY)
+├── README.md                         - Project overview and setup guide
+├── presentation_qa.md                - Teacher Q&A defense answers
+├── project_explanation.txt           - This file
+│
+├── source_codes/
+│   ├── extract_features.py           - Prosody Agent (23 features + MFCCs)
+│   ├── extract_language_features.py  - Language Agent (6 text features)
+│   ├── extract_daic_woz.py           - DAIC-WOZ chunker + parallel extractor
+│   ├── train_daic_woz_model.py       - GBM training with SMOTE balancing
+│   ├── langgraph_workflow.py         - LangGraph pipeline orchestration
+│   ├── database_manager.py           - SQLite storage + baseline calculator
+│   ├── app_dashboard.py              - Streamlit frontend dashboard
+│   ├── create_metadata.py            - CREMA-D dataset metadata parser
+│   ├── analyze_by_emotion.py         - Feature visualization by emotion
+│   └── generate_test_audio.py        - Synthetic test audio generator
+│
+├── dataset/
+│   └── DAIC_WOZ/
+│       ├── 300_P/                    - Participant 300 folder
+│       │   ├── 300_AUDIO.wav         - Full interview audio
+│       │   └── 300_TRANSCRIPT.csv    - Time-aligned transcript
+│       ├── 301_P/ ...                - More participants
+│       └── 315_P/
+│
+├── output/
+│   ├── daic_woz_features.csv         - Extracted training features
+│   ├── ewss_features.db              - SQLite user tracking database
+│   ├── models/
+│   │   └── acoustic_risk_model.pkl   - Trained GBM model (production)
+│   ├── metrics/
+│   │   ├── confusion_matrix.png      - Visual confusion matrix
+│   │   └── feature_importance.png    - Top feature importance chart
+│   └── test_audio/
+│       ├── test_DEPRESSED_high_risk.wav
+│       ├── test_STRESSED_medium_risk.wav
+│       └── test_HEALTHY_low_risk.wav
+
+
+9. HOW TO RUN THE PROJECT
+==========================
+
+Step 1: Install all dependencies
+  pip install librosa pandas numpy speechrecognition textblob langgraph
+  pip install google-generativeai python-dotenv streamlit plotly
+  pip install scikit-learn joblib imbalanced-learn matplotlib seaborn
+
+Step 2: Set up API key
+  Open .env file and add:
+  GEMINI_API_KEY="your_actual_gemini_api_key"
+
+Step 3: Extract features from DAIC-WOZ audio (uses all CPU cores)
+  python source_codes/extract_daic_woz.py
+
+Step 4: Train the Gradient Boosting model with SMOTE
+  python source_codes/train_daic_woz_model.py
+
+Step 5: Launch the dashboard
+  streamlit run source_codes/app_dashboard.py
+
+Step 6: Upload any .wav audio file and see the full analysis!
+
+
+10. TECHNOLOGIES & LIBRARIES USED
+==================================
+
+Category            | Technology          | Purpose
+--------------------|---------------------|----------------------------------------
+Audio Processing    | librosa             | Acoustic feature extraction & MFCCs
+NLP / Text          | TextBlob            | Sentiment analysis & text features
+Speech-to-Text      | SpeechRecognition   | Google Web Speech API transcription
+Machine Learning    | scikit-learn        | GradientBoostingClassifier + Pipeline
+Data Balancing      | imbalanced-learn    | SMOTE for minority class synthesis
+AI / LLM            | google-generativeai | Gemini 1.5 Flash API for reasoning
+Pipeline            | LangGraph           | Multi-agent workflow orchestration
+Database            | SQLite3             | Local feature storage & baselines
+Frontend            | Streamlit           | Interactive web dashboard
+Visualization       | Plotly, Matplotlib  | Charts, confusion matrix, importance
+Parallelism         | Joblib              | Multi-core CPU feature extraction
+Data Handling       | Pandas, NumPy       | Dataframes, arrays, and math
+
+
+11. KEY RESEARCH REFERENCES
+============================
+
+1. Gratch et al. (2014) - "The Distress Analysis Interview Corpus of Human
+   and Computer Interviews" - USC Institute for Creative Technologies
+   (This is the DAIC-WOZ dataset paper)
+
+2. Cummins et al. (2015) - "A Review of Depression and Suicide Risk
+   Assessment Using Speech Analysis" - Speech Communication Journal
+   (Establishes vocal biomarkers of depression)
+
+3. Low et al. (2011) - "Detection of Clinical Depression in Adolescents'
+   Speech During Family Interactions" - IEEE Transactions
+   (Proves MFCCs can detect depression in speech)
+
+4. Chawla et al. (2002) - "SMOTE: Synthetic Minority Over-sampling Technique"
+   - Journal of Artificial Intelligence Research
+   (The foundational SMOTE algorithm paper)
+
+
+================================================================================
+                         END OF PROJECT EXPLANATION
+================================================================================
