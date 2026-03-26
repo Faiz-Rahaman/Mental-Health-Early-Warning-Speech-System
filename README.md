@@ -28,6 +28,9 @@ A powerful, multimodal AI pipeline designed to detect early indicators of depres
                                                             ▼
                                                    [Streamlit Dashboard]
 ```
+<img width="1919" height="872" alt="Screenshot 2026-03-26 084838" src="https://github.com/user-attachments/assets/2d29a5a5-1f2f-4802-a0c4-a3bc7e60d158" />
+<img width="1919" height="872" alt="Screenshot 2026-03-26 084838" src="https://github.com/user-attachments/assets/54af6dd5-b57b-40fd-be36-896088ece70c" />
+
 
 ## ⚙️ Installation & Setup
 
