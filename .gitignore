@@ -1,7 +1,11 @@
-# Environment Variables (CRITICAL: Never commit API keys!)
+# ==========================================
+# Environment & Secrets
+# ==========================================
 .env
 
-# Raw Audio Data (Too large for GitHub)
+# ==========================================
+# DAIC-WOZ Raw Audio Data (Too large for GitHub)
+# ==========================================
 300_P/
 301_P/
 302_P/
@@ -21,20 +25,33 @@
 dataset/
 baseline_audio/
 
-# Temporary and Cache Files
-output/temp/
+# ==========================================
+# Python Cache
+# ==========================================
 __pycache__/
 *.pyc
+*.pyo
 
-# Local Databases and Unnecessary Output
+# ==========================================
+# Temporary Files & Local DB
+# ==========================================
+output/temp/
 output/ewss_features.db
-output/all_features_crema.csv
-output/sample_language_features.csv
-output/daic_woz_features.csv
 
-# VS Code Settings (Optional)
+# ==========================================
+# Large CSVs (Generated, not source code)
+# ==========================================
+output/all_features_crema.csv
+output/daic_woz_features.csv
+output/sample_language_features.csv
+
+# ==========================================
+# VS Code & IDE
+# ==========================================
 .vscode/
 
-# Other unneeded files
+# ==========================================
+# Misc
+# ==========================================
 testmcp.py
 parlant-data/
